@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>AUTODIAL.EXE</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="node_modules/@xterm/xterm/css/xterm.css" />
+</head>
+<body>
+  <div class="monitor">
+    <div class="screen-wrap">
+      <div class="screen" id="screen">
+        <div class="crt-fx"></div>
+
+        <div id="power-gate" class="power-gate">
+          <pre class="logo-small">╔═╗╦ ╦╔╦╗╔═╗╔╦╗╦╔═╗╦    ╔═╗═╗ ╦╔═╗
+╠═╣║ ║ ║ ║ ║ ║║║╠═╣║    ║╣ ╔╩╦╝║╣
+╩ ╩╚═╝ ╩ ╚═╝═╩╝╩╩ ╩╩═╝  ╚═╝╩ ╚═╚═╝</pre>
+          <div class="power-hint">PHASE 1 — THE BRIDGE IS LIVE<br>press any key to power on <span class="cursor-block"></span></div>
+          <div class="power-signal" id="power-signal"></div>
+        </div>
+
+        <div id="app" class="app hidden">
+          <div class="statusbar">
+            <span id="sb-left">COM1 · IDLE</span>
+            <span id="sb-mid" id="sb-mid"></span>
+            <span id="sb-right">AMBER · SND <span id="sb-snd">ON</span></span>
+          </div>
+          <div id="body" class="body"></div>
+          <div class="hintbar" id="hintbar"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="node_modules/@xterm/xterm/lib/xterm.js"></script>
+  <script src="audio.js"></script>
+  <script src="directory.js"></script>
+  <script src="quotes.js"></script>
+  <script src="resources.js"></script>
+  <script src="wardial.js"></script>
+  <script src="connect.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
