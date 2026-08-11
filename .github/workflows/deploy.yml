@@ -8,18 +8,41 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY || vars.SSH_PRIVATE_KEY }}
+      SSH_PORT: ${{ secrets.SSH_PORT || vars.SSH_PORT }}
+      SSH_HOST: ${{ secrets.SSH_HOST || vars.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER || vars.SSH_USER }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Validate deploy configuration
+        id: deploy_config
+        run: |
+          missing=()
+          for key in SSH_PRIVATE_KEY SSH_PORT SSH_HOST SSH_USER; do
+            if [ -z "${!key:-}" ]; then
+              missing+=("$key")
+            fi
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping deploy: missing required deployment settings: ${missing[*]}"
+            exit 0
+          fi
+          echo "configured=true" >> "$GITHUB_OUTPUT"
+
       - name: Set up deploy key
+        if: steps.deploy_config.outputs.configured == 'true'
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+          ssh-keyscan -p "$SSH_PORT" "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Rsync app files to the VPS
+        if: steps.deploy_config.outputs.configured == 'true'
         run: |
           rsync -avz --delete \
             --exclude 'node_modules' \
@@ -27,11 +50,12 @@ jobs:
             --exclude '.github' \
             --exclude 'deploy.sh' \
             --exclude 'tls-router-setup.sh' \
-            -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.SSH_PORT }} -o StrictHostKeyChecking=no" \
-            ./ "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/hermes/apps/autodial/"
+            -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT -o StrictHostKeyChecking=no" \
+            ./ "$SSH_USER@$SSH_HOST:/home/hermes/apps/autodial/"
 
       - name: Install dependencies and restart the service
+        if: steps.deploy_config.outputs.configured == 'true'
         run: |
-          ssh -i ~/.ssh/deploy_key -p "${{ secrets.SSH_PORT }}" -o StrictHostKeyChecking=no \
-            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o StrictHostKeyChecking=no \
+            "$SSH_USER@$SSH_HOST" \
             "bash -lc 'cd /home/hermes/apps/autodial && npm install --omit=dev' && sudo systemctl restart autodial && sleep 1 && sudo systemctl --no-pager status autodial | head -10"
